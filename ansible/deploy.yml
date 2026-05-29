@@ -1,0 +1,24 @@
+---
+- hosts: web
+  become: true
+
+  tasks:
+
+    - name: Pull latest code from GitHub
+      git:
+        repo: YOUR_GITHUB_REPO_URL
+        dest: /home/ubuntu/devops-project
+        version: main
+        force: yes
+
+    - name: Stop old container
+      shell: docker stop flask-container || true
+
+    - name: Remove old container
+      shell: docker rm flask-container || true
+
+    - name: Build Docker image
+      shell: docker build -t devops-flask-app /home/ubuntu/devops-project
+
+    - name: Run Docker container
+      shell: docker run -d -p 5000:5000 --name flask-container devops-flask-app
