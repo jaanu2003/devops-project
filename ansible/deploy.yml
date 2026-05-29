@@ -6,7 +6,7 @@
 
     - name: Pull latest code from GitHub
       git:
-        repo: YOUR_GITHUB_REPO_URL
+        repo: https://github.com/jaanu2003/devops-project
         dest: /home/ubuntu/devops-project
         version: main
         force: yes
