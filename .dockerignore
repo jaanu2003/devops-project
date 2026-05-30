@@ -1,2 +1,5 @@
-__pycache__
-*.pyc
+.git
+terraform
+ansible
+jenkins.war
+*.pem
