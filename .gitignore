@@ -4,8 +4,19 @@ terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/.terraform.lock.hcl
 
-# Ansible
+# Ansible (generated per deploy)
+ansible/inventory
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets
+*.pem
+
+# Ansible archives
 ansible/*.zip
 
-# Optional
-*.pem
+# OS
+.DS_Store
+Thumbs.db

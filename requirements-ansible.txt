@@ -1,0 +1,7 @@
+# Ansible on native Windows is not supported well by upstream.
+# Use WSL instead:  wsl bash scripts/deploy-wsl.sh
+#
+# If you must use Windows Python, use Python 3.12+ (you have 3.14 installed):
+#   py -3.14 -m pip install ansible
+#   export LC_ALL=C.UTF-8 LANG=C.UTF-8 PYTHONUTF8=1   # in Git Bash before running
+#   /c/Users/jahna/AppData/Local/Programs/Python/Python314/Scripts/ansible-playbook ...
