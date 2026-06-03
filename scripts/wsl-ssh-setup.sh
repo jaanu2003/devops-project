@@ -15,7 +15,9 @@ fi
 mkdir -p "${HOME}/.ssh"
 chmod 700 "${HOME}/.ssh"
 
-cp -f "${SOURCE_KEY}" "${WSL_KEY}"
+if [[ "${SOURCE_KEY}" != "${WSL_KEY}" ]]; then
+  cp -f "${SOURCE_KEY}" "${WSL_KEY}"
+fi
 chmod 600 "${WSL_KEY}"
 
 # Trust EC2 host key (fixes "Host key verification failed" in Ansible)

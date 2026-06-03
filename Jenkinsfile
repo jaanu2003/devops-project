@@ -107,7 +107,7 @@ pipeline {
                             '''
                         } else {
                             bat """
-                                wsl bash -lc "export EC2_HOST=${EC2_HOST} APP_DEPLOY_BRANCH=${params.GIT_BRANCH} && cd /mnt/e/Jahnavi/Main/devops-project && cp \"\$(wslpath -u '%SSH_KEY_FILE%')\" ~/.ssh/devops-key.pem && bash scripts/wsl-ssh-setup.sh ~/.ssh/devops-key.pem && export SSH_KEY_PATH=~/.ssh/devops-key.pem && bash scripts/generate_inventory.sh && cd ansible && ansible-playbook -i inventory deploy.yml"
+                                wsl bash -lc "set -euo pipefail && export EC2_HOST=${EC2_HOST} APP_DEPLOY_BRANCH=${params.GIT_BRANCH} && cd \"\$(wslpath -u '%WORKSPACE%')\" && bash scripts/wsl-ssh-setup.sh \"\$(wslpath -u '%SSH_KEY_FILE%')\" && export SSH_KEY_PATH=~/.ssh/devops-key.pem && bash scripts/generate_inventory.sh && cd ansible && ansible-playbook -i inventory deploy.yml"
                             """
                         }
                     }
