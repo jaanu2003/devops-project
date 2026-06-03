@@ -128,14 +128,39 @@ Or set Jenkins **Shell** to Git Bash:
 
 Restart Jenkins: services.msc → **Jenkins** → Restart.
 
-### Step 5: Jenkins credential (SSH key)
+### Step 5: Jenkins credential (SSH key) — ID must match Jenkinsfile
 
-1. Open **http://localhost:8080**
-2. **Manage Jenkins** → **Credentials** → **System** → **Global** → **Add Credentials**
-3. Kind: **SSH Username with private key**
-4. ID: **`devops-ec2-ssh-key`** (must match `Jenkinsfile`)
-5. Username: **`ubuntu`**
-6. Private Key: **Enter directly** → paste full `devops-key.pem` contents
+Jenkins may show a **UUID** in the URL (e.g. `466bc522-...`). That is not what the pipeline uses.
+
+1. **Manage Jenkins → Credentials →** click your SSH credential.
+2. Check the **ID** field (not Description):
+   - Required: **`devops-ec2-ssh-key`**
+   - If ID is a random UUID, **delete** and create again:
+     - Kind: SSH Username with private key
+     - **ID:** type manually `devops-ec2-ssh-key` (do not leave auto-generated)
+     - Username: `ubuntu`
+     - Private key: paste `devops-key.pem`
+
+3. In job **Configure**, under Pipeline → if SSH fails, confirm credential ID in Jenkinsfile matches exactly.
+
+### Step 5b: Run on built-in node (not ec2-agent)
+
+If the log says `Running on ec2-agent`, the job runs on EC2 and Git fails (`C:\Program Files\Git\...` on Linux).
+
+**Fix (pick one):**
+
+- **Manage Jenkins → Nodes → ec2-agent → Disconnect** (or delete the node), **or**
+- Job **Configure** → **Restrict where this project can be run** → Label: `built-in`
+
+The updated `Jenkinsfile` uses `agent { label 'built-in' }` so builds run on your PC.
+
+### Step 5c: “Build with Parameters” missing?
+
+It appears **after** Jenkins loads `Jenkinsfile` from a successful checkout once.
+
+Until then use **Build Now** — defaults are in `Jenkinsfile` (`EC2_HOST_OVERRIDE` default `13.126.236.86`).
+
+After a successful run, **Build with Parameters** will show on the left.
 
 ### Step 6: Create Pipeline job
 

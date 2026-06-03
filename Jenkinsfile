@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    // Run on Jenkins controller (your PC), NOT on ec2-agent.
+    // ec2-agent is the deploy target; building there breaks Git (Windows git.exe on Linux).
+    agent {
+        label 'built-in'
+    }
 
     options {
         timestamps()
@@ -14,8 +18,8 @@ pipeline {
         )
         string(
             name: 'EC2_HOST_OVERRIDE',
-            defaultValue: '',
-            description: 'Optional EC2 public IP. Leave empty to use terraform output instance_public_ip'
+            defaultValue: '13.126.236.86',
+            description: 'EC2 public IP to deploy to'
         )
         string(
             name: 'GIT_BRANCH',
@@ -29,6 +33,7 @@ pipeline {
         ANSIBLE_USER       = 'ubuntu'
         GIT_REPO_URL       = 'https://github.com/jaanu2003/devops-project.git'
         APP_DEPLOY_BRANCH  = "${params.GIT_BRANCH}"
+        EC2_HOST           = "${params.EC2_HOST_OVERRIDE}"
     }
 
     stages {
@@ -40,10 +45,21 @@ pipeline {
 
         stage('Validate') {
             steps {
-                sh '''
-                    python3 -m py_compile app.py
-                    cd terraform && terraform init -backend=false && terraform validate
-                '''
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            python3 -m py_compile app.py
+                            cd terraform && terraform init -backend=false && terraform validate
+                        '''
+                    } else {
+                        bat '''
+                            python -m py_compile app.py
+                            cd terraform
+                            terraform init -backend=false
+                            terraform validate
+                        '''
+                    }
+                }
             }
         }
 
@@ -56,11 +72,21 @@ pipeline {
                     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    sh '''
-                        cd terraform
-                        terraform init
-                        terraform apply -auto-approve
-                    '''
+                    script {
+                        if (isUnix()) {
+                            sh '''
+                                cd terraform
+                                terraform init
+                                terraform apply -auto-approve
+                            '''
+                        } else {
+                            bat '''
+                                cd terraform
+                                terraform init
+                                terraform apply -auto-approve
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -77,9 +103,6 @@ pipeline {
                     script {
                         env.SSH_KEY_PATH = SSH_KEY_FILE
                         env.ANSIBLE_USER = SSH_USER
-                        if (params.EC2_HOST_OVERRIDE?.trim()) {
-                            env.EC2_HOST = params.EC2_HOST_OVERRIDE.trim()
-                        }
                     }
                     script {
                         if (isUnix()) {
@@ -89,9 +112,8 @@ pipeline {
                                 ansible-playbook -i inventory deploy.yml
                             '''
                         } else {
-                            def host = env.EC2_HOST ?: '13.126.236.86'
                             bat """
-                                wsl bash -lc "export EC2_HOST=${host} APP_DEPLOY_BRANCH=${params.GIT_BRANCH} && cd /mnt/e/Jahnavi/Main/devops-project && cp \"\$(wslpath -u '%SSH_KEY_FILE%')\" ~/.ssh/devops-key.pem && bash scripts/wsl-ssh-setup.sh ~/.ssh/devops-key.pem && export SSH_KEY_PATH=~/.ssh/devops-key.pem && bash scripts/generate_inventory.sh && cd ansible && ansible-playbook -i inventory deploy.yml"
+                                wsl bash -lc "export EC2_HOST=${EC2_HOST} APP_DEPLOY_BRANCH=${params.GIT_BRANCH} && cd /mnt/e/Jahnavi/Main/devops-project && cp \"\$(wslpath -u '%SSH_KEY_FILE%')\" ~/.ssh/devops-key.pem && bash scripts/wsl-ssh-setup.sh ~/.ssh/devops-key.pem && export SSH_KEY_PATH=~/.ssh/devops-key.pem && bash scripts/generate_inventory.sh && cd ansible && ansible-playbook -i inventory deploy.yml"
                             """
                         }
                     }
@@ -102,16 +124,7 @@ pipeline {
 
     post {
         success {
-            script {
-                def ip = params.EC2_HOST_OVERRIDE?.trim()
-                if (!ip) {
-                    ip = sh(
-                        script: 'cd terraform && terraform output -raw instance_public_ip',
-                        returnStdout: true
-                    ).trim()
-                }
-                echo "Application URL: http://${ip}:5000"
-            }
+            echo "Application URL: http://${EC2_HOST}:5000"
         }
     }
 }
